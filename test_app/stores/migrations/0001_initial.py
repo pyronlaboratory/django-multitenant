@@ -8,6 +8,20 @@ import django.db.models.deletion
 
 class Migration(migrations.Migration):
 
+    """
+    Defines a set of database migrations for creating models, fields, and relationships
+    between them. It initializes the models, creates fields, and defines relationships
+    between them.
+
+    Attributes:
+        initial (bool): Set to `True`, indicating that this migration is intended
+            to be executed at startup.
+        dependencies (List[Tuple[str,str]]): Used to specify other migrations that
+            this migration depends on.
+        operations (list[migrationOperation]): Defined as a list of migration
+            operations, including creating models, fields, and relationships.
+
+    """
     initial = True
 
     dependencies = [

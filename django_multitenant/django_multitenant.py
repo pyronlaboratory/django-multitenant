@@ -17,7 +17,18 @@ logger = logging.getLogger(__name__)
 class TenantQuerySet(models.QuerySet):
     
     #This is adding tenant filters for all the models in the join.
+    """
+    Adds tenant filters to a queryset based on the current tenant's ID, using joins
+    or without joins depending on the method called. It also provides additional
+    methods for iteration, aggregation, count, and getting an object.
+
+    """
     def add_tenant_filters_with_joins(self):
+        """
+        Adds tenant-specific filters to the queryset by joining with other models
+        and adding extra where clauses based on the current tenant.
+
+        """
         current_tenant=get_current_tenant()
         if current_tenant:
             extra_sql=[]
@@ -34,6 +45,11 @@ class TenantQuerySet(models.QuerySet):
             self.query.add_extra([],[],extra_sql,extra_params,[],[])
     
     def add_tenant_filters_without_joins(self):
+        """
+        Adds tenant-specific filters to the queryset without using joins, by
+        appending a list of filter fields and values to the queryset's extra parameters.
+
+        """
         current_tenant=get_current_tenant()
         if current_tenant:
             l=[]
@@ -44,19 +60,63 @@ class TenantQuerySet(models.QuerySet):
     #Below are APIs which generate SQL, this is where the tenant_id filters are injected for joins.
     
     def __iter__(self):
+        """
+        Adds tenant filters with joins and then iterates over the resulting queryset
+        using `super().__iter__()`.
+
+        Returns:
+            object: `TenantQuerySet`.
+
+        """
         self.add_tenant_filters_with_joins()
         return super(TenantQuerySet,self).__iter__()
     
     def aggregate(self, *args, **kwargs):
+        """
+        Performs additional filtering and joining for each tenant, before calling
+        the superclass's aggregate method to perform further aggregation.
+
+        Args:
+            *args (list): List of positional arguments
+            **kwargs (dict): Dictionary of keyword arguments
+
+        Returns:
+            Any: The result of applying various aggregation operations to a
+            TenantQuerySet instance.
+
+        """
         self.add_tenant_filters_with_joins()
         return super(TenantQuerySet,self).aggregate(*args, **kwargs)
 
     def count(self):
+        """
+        Adds tenant filters with joins before calling the superclass's count method
+        to retrieve the total number of tenants in the database.
+
+        Returns:
+            int: The count of the number of tenants that satisfy the filter
+            conditions applied using the `add_tenant_filters_with_joins()` method
+            and then the superclass `count()` method is called to provide the total
+            count.
+
+        """
         self.add_tenant_filters_with_joins()
         return super(TenantQuerySet,self).count()
 
     def get(self, *args, **kwargs):
         #self.add_tenant_filters()
+        """
+        Adds tenant filters and joins before returning the result of the superclass's
+        `get` method.
+
+        Args:
+            *args (list): List of positional arguments
+            **kwargs (dict): Dictionary of keyword arguments
+
+        Returns:
+            object: A subclass of `django.db.models.query.QuerySet`.
+
+        """
         self.add_tenant_filters_with_joins()
         return super(TenantQuerySet,self).get(*args,**kwargs)
 
@@ -76,6 +136,11 @@ class TenantQuerySet(models.QuerySet):
     
     #This API is called when there is a subquery. Injected tenant_ids for the subqueries.
     def _as_sql(self, connection):
+        """
+        Adds tenant filters with joins and then delegates the remaining SQL
+        generation to the parent class's `_as_sql` method through super().
+
+        """
         self.add_tenant_filters_with_joins()
         return super(TenantQuerySet,self)._as_sql(connection)
 
@@ -83,7 +148,22 @@ class TenantQuerySet(models.QuerySet):
 class TenantManager(TenantQuerySet.as_manager().__class__):
     #Injecting tenant_id filters in the get_queryset.
     #Injects tenant_id filter on the current model for all the non-join/join queries. 
+    """
+    Filters tenant-related objects based on the current tenant's ID using the
+    `get_queryset` method.
+
+    """
     def get_queryset(self):
+        """
+        Filters tenants based on the current tenant's ID, using the `super()`
+        method to first call the parent class's implementation and then apply
+        custom filtering criteria using a dictionary of keyword arguments.
+
+        Returns:
+            Dict[str,int]: Used to filter a QuerySet of Tenant instances based on
+            the current tenant ID.
+
+        """
         current_tenant=get_current_tenant()
         if current_tenant:
             kwargs = { self.model.tenant_id: current_tenant.id}
@@ -94,12 +174,28 @@ class TenantManager(TenantQuerySet.as_manager().__class__):
 class TenantModel(models.Model):
 
     #New manager from middleware
+    """
+    Provides an abstraction layer for tenant-related operations in a Django model.
+    It defines a `_do_update()` method that filters base queries based on the
+    current tenant and updates the model instances using the `super()` method.
+
+    Attributes:
+        objects (TenantManager): Used to manage the tenants for the model.
+        tenant_id (str|int): Used to store the unique identifier for a tenant,
+            which is used to filter related records when updating.
+
+    """
     objects = TenantManager()
     tenant_id=''
 
     #adding tenant filters for save
     #Citus requires tenant_id filters for update, hence doing this below change.
     def _do_update(self, base_qs, using, pk_val, values, update_fields, forced_update):
+        """
+        Updates tenant records based on input parameters, taking into account
+        current tenant and filtering the base query set with tenant-related fields.
+
+        """
         current_tenant=get_current_tenant()
         if current_tenant:
             kwargs = { self.__class__.tenant_id: current_tenant.id}
@@ -111,30 +207,27 @@ class TenantModel(models.Model):
 
 
 class TenantForeignKey(models.ForeignKey):
-    '''
-    Should be used in place of models.ForeignKey for all foreign key relationships to
-    subclasses of TenantModel.
+    """
+    Modifies the behavior of a foreign key field to include tenant-specific data.
+    It filters related instances based on the current tenant and adds a lookup
+    condition for exact matching of tenant IDs.
 
-    Adds additional clause to JOINs over this relation to include tenant_id in the JOIN
-    on the TenantModel.
-
-    Adds clause to forward accesses through this field to include tenant_id in the
-    TenantModel lookup.
-    '''
+    """
 
     # Override
     def get_extra_descriptor_filter(self, instance):
         """
-        Return an extra filter condition for related object fetching when
-        user does 'instance.fieldname', that is the extra filter is used in
-        the descriptor of the field.
+        Returns a filter dictionary for the instance based on the current tenant
+        ID, or warns about potential issues in a partitioned environment if no
+        current tenant is set.
 
-        The filter should be either a dict usable in .filter(**kwargs) call or
-        a Q-object. The condition will be ANDed together with the relation's
-        joining columns.
+        Args:
+            instance (selfmodel): Used to represent an instance of the model class.
 
-        A parallel method is get_extra_restriction() which is used in
-        JOIN and subquery conditions.
+        Returns:
+            Dict[str,int]: A descriptor filter for the `TenantForeignKey` field
+            on an instance of a model.
+
         """
         current_tenant = get_current_tenant()
         if current_tenant:
@@ -151,15 +244,22 @@ class TenantForeignKey(models.ForeignKey):
     # Override
     def get_extra_restriction(self, where_class, alias, related_alias):
         """
-        Return a pair condition used for joining and subquery pushdown. The
-        condition is something that responds to as_sql(compiler, connection)
-        method.
+        Fetches tenant column names and fields for both sides of a relation, then
+        creates a lookup condition and adds it to an existing where clause.
 
-        Note that currently referring both the 'alias' and 'related_alias'
-        will not work in some conditions, like subquery pushdown.
+        Args:
+            where_class (Type|Callable): Used to specify the condition for filtering
+                related objects in the relation.
+            alias (str): Used to specify the alias of the related model for the
+                lookup operation.
+            related_alias (str|List[str]): Used to specify the alias or aliases
+                of the related model field that should be looked up in the related
+                table.
 
-        A parallel method is get_extra_descriptor_filter() which is used in
-        instance.fieldname related object fetching.
+        Returns:
+            Condition: A subclass of the Python built-in `bool` type and represents
+            a filter condition for use in a Django queryset.
+
         """
 
         # Fetch tenant column names for both sides of the relation
@@ -193,6 +293,19 @@ def get_current_user():
     return getattr(_thread_locals, 'user', None)
 
 def get_model_by_db_table(db_table):
+    """
+    Searches through the Django models registered in `apps` and returns the first
+    model that matches the given `db_table`. If no match is found, it raises a `ValueError`.
+
+    Args:
+        db_table (str): The name of the database table associated with a model in
+            Django's ORM.
+
+    Returns:
+        Model: A Django ORM model object associated with the given database table
+        name.
+
+    """
     for model in apps.get_models():
         if model._meta.db_table == db_table:
             return model
@@ -203,9 +316,12 @@ def get_model_by_db_table(db_table):
 
 def get_current_tenant():
     """
-    To get the Tenant instance for the currently logged in tenant.
-    example:
-        tenant = get_current_tenant()
+    Retrieves the current tenant ID associated with the thread-local storage and
+    returns it. If no tenant is set, it sets the default tenant.
+
+    Returns:
+        object: The current tenant associated with the thread-local storage.
+
     """
     tenant = getattr(_thread_locals, 'tenant', None)
 
@@ -230,9 +346,23 @@ def set_current_tenant(tenant):
 
 
 class ThreadLocals(object):
-    """Middleware that gets various objects from the
-    request object and saves them in thread local storage."""
+    """
+    Maintains per-thread local variables for user and tenant information, and
+    handles security-related issues by raising a `ValueError` when a user is created
+    without a profile.
+
+    """
     def process_request(self, request):
+        """
+        Sets the user and tenant variables for processing requests. If no profile
+        is found with the user, an error message is raised to ensure security.
+
+        Args:
+            request (Any|Request): Possibly a valid Python object, used for executing
+                code or making decisions based on its attributes or methods during
+                the execution of the process.
+
+        """
         _thread_locals.user = getattr(request, 'user', None)
 
         # Attempt to set tenant

@@ -7,6 +7,18 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
 
+    """
+    Adds an `quantity` field to the `purchase` model with a default value of 0.
+
+    Attributes:
+        dependencies (List[str]): Used to specify the migration dependencies, which
+            are other migrations that must be applied before this migration can
+            be applied.
+        operations (List[migrationsAddField]): Defined as a list of AddField
+            operations, which specify the fields to be added or modified in a
+            database migration.
+
+    """
     dependencies = [
         ('stores', '0001_initial'),
     ]

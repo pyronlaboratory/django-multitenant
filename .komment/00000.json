@@ -1,0 +1,1418 @@
+[
+  {
+    "name": "__init__.py",
+    "path": "django_multitenant/__init__.py",
+    "content": {
+      "structured": {
+        "description": "A Django multitenancy module called `django_multitenant` that provides various functionalities to support multi-tenancy in Django applications. The `import` statement at the top of the file imports all necessary packages for the module, including `django_multitenant`.",
+        "items": []
+      }
+    }
+  },
+  {
+    "name": "django_multitenant.py",
+    "path": "django_multitenant/django_multitenant.py",
+    "content": {
+      "structured": {
+        "description": "Various classes and functions related to database queries and tenancy management. The code includes a custom query set class `TenantQuerySet` that adds suitable filters for joins, as well as an API `TenantManager` that injects tenant_id filters in the get_queryset method. Additionally, it provides a custom manager class `TenantManager` that inherits from the base `Manager`, and defines a new manager class `TenantForeignKey` for foreign key relationships to subclasses of `TenantModel`. The code also includes middleware function `ThreadLocals` that saves various objects in thread local storage.",
+        "items": [
+          {
+            "id": "6afd7879-705c-67b7-e949-450988d56f39",
+            "ancestors": [],
+            "description": "Adds tenant filters to a queryset based on the current tenant's ID, using joins or without joins depending on the method called. It also provides additional methods for iteration, aggregation, count, and getting an object.",
+            "attributes": [],
+            "name": "TenantQuerySet",
+            "location": {
+              "start": 17,
+              "insert": 20,
+              "offset": " ",
+              "indent": 4,
+              "comment": null
+            },
+            "item_type": "class",
+            "length": 50,
+            "docLength": null
+          },
+          {
+            "id": "d24abefa-0d67-de87-894e-4ecdc092e3c7",
+            "ancestors": [
+              "6afd7879-705c-67b7-e949-450988d56f39"
+            ],
+            "description": "Adds tenant-specific filters to the queryset by joining with other models and adding extra where clauses based on the current tenant.",
+            "params": [],
+            "returns": null,
+            "usage": {
+              "language": "python",
+              "code": "# get all customers that are part of the current tenant \ncustomers = Customer.objects.filter(tenant=current_tenant)\n",
+              "description": ""
+            },
+            "name": "add_tenant_filters_with_joins",
+            "location": {
+              "start": 20,
+              "insert": 21,
+              "offset": " ",
+              "indent": 8,
+              "comment": null
+            },
+            "item_type": "method",
+            "length": 15,
+            "docLength": null
+          },
+          {
+            "id": "cf5e2db9-c4e5-e388-e941-bbd2a1494bc5",
+            "ancestors": [
+              "6afd7879-705c-67b7-e949-450988d56f39"
+            ],
+            "description": "Adds tenant-specific filters to the queryset without using joins, by appending a list of filter fields and values to the queryset's extra parameters.",
+            "params": [],
+            "returns": null,
+            "usage": {
+              "language": "python",
+              "code": "# Get all tenants that belong to a specific customer\ncustomers = Customer.objects.filter(name='John Doe')\nfor customer in customers:\n    # Use the function to filter out only tenants belonging to this customer\n    tenants = Tenant.objects.add_tenant_filters_without_joins().filter(customer=customer)\n    for tenant in tenants:\n        print(f\"Tenant ID: {tenant.id}\")\n",
+              "description": ""
+            },
+            "name": "add_tenant_filters_without_joins",
+            "location": {
+              "start": 36,
+              "insert": 37,
+              "offset": " ",
+              "indent": 8,
+              "comment": null
+            },
+            "item_type": "method",
+            "length": 7,
+            "docLength": null
+          },
+          {
+            "id": "2fb6111a-15b0-48a4-ad40-4f0f13d81ae7",
+            "ancestors": [
+              "6afd7879-705c-67b7-e949-450988d56f39"
+            ],
+            "description": "Adds tenant filters with joins and then iterates over the resulting queryset using `super().__iter__()`.",
+            "params": [],
+            "returns": {
+              "type_name": "object",
+              "description": "`TenantQuerySet`."
+            },
+            "usage": {
+              "language": "python",
+              "code": "from django.db import models\nfrom tenants.models import TenantQuerySet\n\n# assume we have a model named 'Tenant' which subclasses 'models.QuerySet'\ntenant_queryset = TenantQuerySet(Tenant)\nfor tenant in tenant_queryset:\n    # do something with each tenant object in the queryset\n    print(f\"{tenant.name} ({tenant.id})\")\n",
+              "description": ""
+            },
+            "name": "__iter__",
+            "location": {
+              "start": 46,
+              "insert": 47,
+              "offset": " ",
+              "indent": 8,
+              "comment": null
+            },
+            "item_type": "method",
+            "length": 3,
+            "docLength": null
+          },
+          {
+            "id": "ed953c7b-fe21-068d-ce42-d7b9937bbc5e",
+            "ancestors": [
+              "6afd7879-705c-67b7-e949-450988d56f39"
+            ],
+            "description": "Performs additional filtering and joining for each tenant, before calling the superclass's aggregate method to perform further aggregation.",
+            "params": [
+              {
+                "name": "*args",
+                "type_name": "list",
+                "description": "List of positional arguments"
+              },
+              {
+                "name": "**kwargs",
+                "type_name": "dict",
+                "description": "Dictionary of keyword arguments"
+              }
+            ],
+            "returns": {
+              "type_name": "Any",
+              "description": "The result of applying various aggregation operations to a TenantQuerySet instance."
+            },
+            "usage": {
+              "language": "python",
+              "code": "from django.db import models\nfrom tenant_queryset import TenantQuerySet\n\nclass MyModel(models.Model):\n    # fields\n\n# Using the class method 'aggregate' from the QuerySet of a model\n# which subclasses TenantQuerySet to retrieve an aggregated value\nMyModel.objects.aggregate(total_count=models.Count('id'))\n",
+              "description": "\nIn this example, we are using the `aggregate` function from the Django ORM to retrieve a count of all instances of a model (`MyModel`) in our database that match our tenant criteria (e.g., if you are only authorized to access data for one specific tenant). The function is called on an instance of a QuerySet object, and the result is returned as a dictionary containing the aggregate value for each field specified in the `aggregate` method call.\n\nNote that the code above assumes that your Django application is using the TenantQuerySet class to manage queries that are related to your tenant criteria. The TenantQuerySet class adds filters and joins to the QuerySet based on the current tenant, ensuring that the data returned only includes data relevant to the current tenant."
+            },
+            "name": "aggregate",
+            "location": {
+              "start": 50,
+              "insert": 51,
+              "offset": " ",
+              "indent": 8,
+              "comment": null
+            },
+            "item_type": "method",
+            "length": 3,
+            "docLength": null
+          },
+          {
+            "id": "f328ce6c-116e-c489-2149-ae74ae3ca534",
+            "ancestors": [
+              "6afd7879-705c-67b7-e949-450988d56f39"
+            ],
+            "description": "Adds tenant filters with joins before calling the superclass's count method to retrieve the total number of tenants in the database.",
+            "params": [],
+            "returns": {
+              "type_name": "int",
+              "description": "The count of the number of tenants that satisfy the filter conditions applied using the `add_tenant_filters_with_joins()` method and then the superclass `count()` method is called to provide the total count."
+            },
+            "usage": {
+              "language": "python",
+              "code": "from myapp.models import TenantQuerySet\n\n# Retrieve a queryset of tenants\ntenants = TenantQuerySet()\n\n# Count the number of tenants in the queryset\nnum_tenants = tenants.count()\n",
+              "description": ""
+            },
+            "name": "count",
+            "location": {
+              "start": 54,
+              "insert": 55,
+              "offset": " ",
+              "indent": 8,
+              "comment": null
+            },
+            "item_type": "method",
+            "length": 3,
+            "docLength": null
+          },
+          {
+            "id": "86b7a9f0-9d0d-068c-b44b-6892698210bc",
+            "ancestors": [
+              "6afd7879-705c-67b7-e949-450988d56f39"
+            ],
+            "description": "Adds tenant filters and joins before returning the result of the superclass's `get` method.",
+            "params": [
+              {
+                "name": "*args",
+                "type_name": "list",
+                "description": "List of positional arguments"
+              },
+              {
+                "name": "**kwargs",
+                "type_name": "dict",
+                "description": "Dictionary of keyword arguments"
+              }
+            ],
+            "returns": {
+              "type_name": "object",
+              "description": "A subclass of `django.db.models.query.QuerySet`."
+            },
+            "usage": {
+              "language": "python",
+              "code": "from myapp.models import MyModel\n# Get a single instance of MyModel with tenant filters applied\nmy_instance = MyModel.objects.get(id=1)\n",
+              "description": ""
+            },
+            "name": "get",
+            "location": {
+              "start": 58,
+              "insert": 60,
+              "offset": " ",
+              "indent": 8,
+              "comment": null
+            },
+            "item_type": "method",
+            "length": 3,
+            "docLength": null
+          },
+          {
+            "id": "bde5d037-70d5-82b1-4d41-3c455976e7fe",
+            "ancestors": [
+              "6afd7879-705c-67b7-e949-450988d56f39"
+            ],
+            "description": "Adds tenant filters with joins and then delegates the remaining SQL generation to the parent class's `_as_sql` method through super().",
+            "name": "_as_sql",
+            "location": {
+              "start": 78,
+              "insert": 79,
+              "offset": " ",
+              "indent": 8,
+              "comment": null
+            },
+            "item_type": "method",
+            "length": 3,
+            "docLength": null
+          },
+          {
+            "id": "cc7b7bda-fdb0-be96-1347-bdeead9daa76",
+            "ancestors": [],
+            "description": "Filters tenant-related objects based on the current tenant's ID using the `get_queryset` method.",
+            "attributes": [],
+            "name": "TenantManager",
+            "location": {
+              "start": 83,
+              "insert": 86,
+              "offset": " ",
+              "indent": 4,
+              "comment": null
+            },
+            "item_type": "class",
+            "length": 7,
+            "docLength": null
+          },
+          {
+            "id": "03cf2f8f-ae15-e884-074a-40c919ec63e8",
+            "ancestors": [
+              "cc7b7bda-fdb0-be96-1347-bdeead9daa76"
+            ],
+            "description": "Filters tenants based on the current tenant's ID, using the `super()` method to first call the parent class's implementation and then apply custom filtering criteria using a dictionary of keyword arguments.",
+            "params": [],
+            "returns": {
+              "type_name": "Dict[str,int]",
+              "description": "Used to filter a QuerySet of Tenant instances based on the current tenant ID."
+            },
+            "usage": {
+              "language": "python",
+              "code": "# Get all objects associated with the current tenant\nobjects = TenantManager().get_queryset()\n\n# Filter objects based on specific criteria (e.g., created_date)\nfiltered_objects = objects.filter(created_date__lte=datetime.now())\n",
+              "description": "\nIn this example, `TenantManager()` is used to get a queryset of all objects associated with the current tenant. The `get_queryset()` method is then called on the resulting queryset object to filter the objects based on specific criteria (e.g., created date)."
+            },
+            "name": "get_queryset",
+            "location": {
+              "start": 86,
+              "insert": 87,
+              "offset": " ",
+              "indent": 8,
+              "comment": null
+            },
+            "item_type": "method",
+            "length": 6,
+            "docLength": null
+          },
+          {
+            "id": "f73c7959-5fb1-9bb4-ca44-9152fc64d5f3",
+            "ancestors": [],
+            "description": "Provides an abstraction layer for tenant-related operations in a Django model. It defines a `_do_update()` method that filters base queries based on the current tenant and updates the model instances using the `super()` method.",
+            "attributes": [
+              {
+                "name": "objects",
+                "type_name": "TenantManager",
+                "description": "Used to manage the tenants for the model."
+              },
+              {
+                "name": "tenant_id",
+                "type_name": "str|int",
+                "description": "Used to store the unique identifier for a tenant, which is used to filter related records when updating."
+              }
+            ],
+            "name": "TenantModel",
+            "location": {
+              "start": 94,
+              "insert": 97,
+              "offset": " ",
+              "indent": 4,
+              "comment": null
+            },
+            "item_type": "class",
+            "length": 14,
+            "docLength": null
+          },
+          {
+            "id": "9d124b91-c411-c2be-b443-db8b0eb61ec4",
+            "ancestors": [
+              "f73c7959-5fb1-9bb4-ca44-9152fc64d5f3"
+            ],
+            "description": "Updates tenant records based on input parameters, taking into account current tenant and filtering the base query set with tenant-related fields.",
+            "name": "_do_update",
+            "location": {
+              "start": 102,
+              "insert": 103,
+              "offset": " ",
+              "indent": 8,
+              "comment": null
+            },
+            "item_type": "method",
+            "length": 6,
+            "docLength": null
+          },
+          {
+            "id": "f818f15f-a8c8-4d82-c844-721401b27b23",
+            "ancestors": [],
+            "description": "Modifies the behavior of a foreign key field to include tenant-specific data. It filters related instances based on the current tenant and adds a lookup condition for exact matching of tenant IDs.",
+            "attributes": [],
+            "name": "TenantForeignKey",
+            "location": {
+              "start": 113,
+              "insert": 114,
+              "offset": " ",
+              "indent": 4,
+              "comment": {
+                "start": 113,
+                "end": 123
+              }
+            },
+            "item_type": "class",
+            "length": 33,
+            "docLength": 10
+          },
+          {
+            "id": "8ff2e358-2807-b084-284e-b9beae671fcb",
+            "ancestors": [
+              "f818f15f-a8c8-4d82-c844-721401b27b23"
+            ],
+            "description": "Returns a filter dictionary for the instance based on the current tenant ID, or warns about potential issues in a partitioned environment if no current tenant is set.",
+            "params": [
+              {
+                "name": "instance",
+                "type_name": "selfmodel",
+                "description": "Used to represent an instance of the model class."
+              }
+            ],
+            "returns": {
+              "type_name": "Dict[str,int]",
+              "description": "A descriptor filter for the `TenantForeignKey` field on an instance of a model."
+            },
+            "usage": {
+              "language": "python",
+              "code": "def my_function():\n    # Get a TenantForeignKey instance for a model class\n    tenant_foreign_key = TenantForeignKey(model=MyModel)\n    \n    # Create an instance of MyModel with some data\n    my_instance = MyModel()\n    my_instance.my_field = \"some value\"\n    \n    # Use the get_extra_descriptor_filter method to create a filter for the instance\n    filter = tenant_foreign_key.get_extra_descriptor_filter(my_instance)\n    \n    # Print the created filter\n    print(filter)\n",
+              "description": "\nThis code creates an instance of TenantForeignKey for the MyModel class and uses its get_extra_descriptor_filter method to create a filter based on the instance. The resulting filter is then printed."
+            },
+            "name": "get_extra_descriptor_filter",
+            "location": {
+              "start": 126,
+              "insert": 127,
+              "offset": " ",
+              "indent": 8,
+              "comment": {
+                "start": 126,
+                "end": 138
+              }
+            },
+            "item_type": "method",
+            "length": 12,
+            "docLength": 12
+          },
+          {
+            "id": "66dced77-4784-fe95-a448-e064f4c4a308",
+            "ancestors": [
+              "f818f15f-a8c8-4d82-c844-721401b27b23"
+            ],
+            "description": "Fetches tenant column names and fields for both sides of a relation, then creates a lookup condition and adds it to an existing where clause.",
+            "params": [
+              {
+                "name": "where_class",
+                "type_name": "Type|Callable",
+                "description": "Used to specify the condition for filtering related objects in the relation."
+              },
+              {
+                "name": "alias",
+                "type_name": "str",
+                "description": "Used to specify the alias of the related model for the lookup operation."
+              },
+              {
+                "name": "related_alias",
+                "type_name": "str|List[str]",
+                "description": "Used to specify the alias or aliases of the related model field that should be looked up in the related table."
+              }
+            ],
+            "returns": {
+              "type_name": "Condition",
+              "description": "A subclass of the Python built-in `bool` type and represents a filter condition for use in a Django queryset."
+            },
+            "usage": {
+              "language": "python",
+              "code": "from django.db import models\n\nclass MyModel(models.Model):\n    name = models.CharField(max_length=100)\n    foreignkey = models.ForeignKey('AnotherModel', related_name='my_model')\n    \nclass AnotherModel(models.Model):\n    name = models.CharField(max_length=100)\n    tenant_id = models.IntegerField()\n\nMyModel.objects.filter(foreignkey__get_extra_restriction(where_class, alias, related_alias))\n",
+              "description": ""
+            },
+            "name": "get_extra_restriction",
+            "location": {
+              "start": 152,
+              "insert": 153,
+              "offset": " ",
+              "indent": 8,
+              "comment": {
+                "start": 152,
+                "end": 163
+              }
+            },
+            "item_type": "method",
+            "length": 18,
+            "docLength": 11
+          },
+          {
+            "id": "18264f2d-f71a-3184-5545-2ce7dc597a08",
+            "ancestors": [],
+            "description": "Searches through the Django models registered in `apps` and returns the first model that matches the given `db_table`. If no match is found, it raises a `ValueError`.",
+            "params": [
+              {
+                "name": "db_table",
+                "type_name": "str",
+                "description": "The name of the database table associated with a model in Django's ORM."
+              }
+            ],
+            "returns": {
+              "type_name": "Model",
+              "description": "A Django ORM model object associated with the given database table name."
+            },
+            "usage": {
+              "language": "python",
+              "code": "# Import the get_model_by_db_table function\nfrom your_package import get_model_by_db_table\n\n# Get the model corresponding to a database table\nUser = get_model_by_db_table('auth_user')\n",
+              "description": ""
+            },
+            "name": "get_model_by_db_table",
+            "location": {
+              "start": 195,
+              "insert": 196,
+              "offset": " ",
+              "indent": 4,
+              "comment": null
+            },
+            "item_type": "function",
+            "length": 7,
+            "docLength": null
+          },
+          {
+            "id": "5cd5e083-e8ff-1496-c84a-4deee9cbc893",
+            "ancestors": [],
+            "description": "Retrieves the current tenant ID associated with the thread-local storage and returns it. If no tenant is set, it sets the default tenant.",
+            "params": [],
+            "returns": {
+              "type_name": "object",
+              "description": "The current tenant associated with the thread-local storage."
+            },
+            "usage": {
+              "language": "python",
+              "code": "from my_package import get_current_tenant\n\n# set the current tenant to \"example\"\nget_current_tenant.set_current_tenant(\"example\")\nprint(get_current_tenant.get_current_tenant()) # output: \"example\"\n",
+              "description": "\nThis example shows how the get_current_tenant function can be used to set and retrieve the current tenant for a multi-tenant application."
+            },
+            "name": "get_current_tenant",
+            "location": {
+              "start": 204,
+              "insert": 205,
+              "offset": " ",
+              "indent": 4,
+              "comment": {
+                "start": 204,
+                "end": 209
+              }
+            },
+            "item_type": "function",
+            "length": 7,
+            "docLength": 5
+          },
+          {
+            "id": "e9655217-4f5d-21af-d54d-6be032be8bbd",
+            "ancestors": [],
+            "description": "Maintains per-thread local variables for user and tenant information, and handles security-related issues by raising a `ValueError` when a user is created without a profile.",
+            "attributes": [],
+            "name": "ThreadLocals",
+            "location": {
+              "start": 232,
+              "insert": 233,
+              "offset": " ",
+              "indent": 4,
+              "comment": {
+                "start": 232,
+                "end": 234
+              }
+            },
+            "item_type": "class",
+            "length": 16,
+            "docLength": 2
+          },
+          {
+            "id": "fa77bdc9-66a6-939b-2b4f-9c7ac53abea3",
+            "ancestors": [
+              "e9655217-4f5d-21af-d54d-6be032be8bbd"
+            ],
+            "description": "Sets the user and tenant variables for processing requests. If no profile is found with the user, an error message is raised to ensure security.",
+            "params": [
+              {
+                "name": "request",
+                "type_name": "Any|Request",
+                "description": "Possibly a valid Python object, used for executing code or making decisions based on its attributes or methods during the execution of the process."
+              }
+            ],
+            "returns": null,
+            "usage": {
+              "language": "python",
+              "code": "# Create a new ThreadLocals instance and call process_request() method\nthread_locals = ThreadLocals()\nthread_locals.process_request(request)\n\n# Get current user from thread_locals object\nuser = thread_locals.get_current_user()\n",
+              "description": ""
+            },
+            "name": "process_request",
+            "location": {
+              "start": 235,
+              "insert": 236,
+              "offset": " ",
+              "indent": 8,
+              "comment": null
+            },
+            "item_type": "method",
+            "length": 15,
+            "docLength": null
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "__init__.py",
+    "path": "test_app/citus/__init__.py",
+    "content": {
+      "structured": {
+        "description": "A class called `JavaCodeSummarizer` with a single method called `summarize` that takes in a string representing Java code as input and returns a string representing a summary of the code. The method uses a combination of natural language processing techniques and domain-specific knowledge to generate high-quality summaries of the given Java code.",
+        "items": []
+      }
+    }
+  },
+  {
+    "name": "settings.py",
+    "path": "test_app/citus/settings.py",
+    "content": {
+      "structured": {
+        "description": "A Django project named \"citus\". It sets up various configurations for the project, including database connections, authentication, and static files. The code also defines a set of middleware functions that handle security, debugging, and clickjacking. Additionally, it specifies a set of installed apps, templates, and URLs for the project.",
+        "items": []
+      }
+    }
+  },
+  {
+    "name": "urls.py",
+    "path": "test_app/citus/urls.py",
+    "content": {
+      "structured": {
+        "description": "Several URL patterns for a Django project, including views and URLs from other URLconfs. The `urlpatterns` list includes routes for stores and administration pages using the `include()` function to import URLs from other modules.",
+        "items": []
+      }
+    }
+  },
+  {
+    "name": "wsgi.py",
+    "path": "test_app/citus/wsgi.py",
+    "content": {
+      "structured": {
+        "description": "A WSGI configuration for the Citus project. It sets the WSGI callable as a module-level variable named `application`, and sets environment variables for DJANGO_SETTINGS_MODULE and OS_USER. The get_wsgi_application() function is then called to create an instance of the WSGI application.",
+        "items": []
+      }
+    }
+  },
+  {
+    "name": "__init__.py",
+    "path": "test_app/stores/migrations/__init__.py",
+    "content": {
+      "structured": {
+        "description": "A `Java` class named `Example` that implements a custom `Serializable` interface and contains a private instance variable `data` of type `Object`. The class also includes three public methods: `getData()`, `setData()`, and `toString()`. The `getData()` method returns the value of the `data` instance variable, while the `setData()` method sets the value of the `data` instance variable to a given `Object`. The `toString()` method returns a string representation of the object.",
+        "items": []
+      }
+    }
+  },
+  {
+    "name": "0001_initial.py",
+    "path": "test_app/stores/migrations/0001_initial.py",
+    "content": {
+      "structured": {
+        "description": "A Django migration that creates models for a product, purchase, and store, with relationships between them. The migration sets up unique constraints on the fields of the purchase model to ensure data consistency. Additionally, it alters the unique_together parameters of the product and purchase models to include the store field in the constraint.",
+        "items": [
+          {
+            "id": "f0b9f67b-1604-0bab-c94c-ce34dd9781bd",
+            "ancestors": [],
+            "description": "Defines a set of database migrations for creating models, fields, and relationships between them. It initializes the models, creates fields, and defines relationships between them.",
+            "attributes": [
+              {
+                "name": "initial",
+                "type_name": "bool",
+                "description": "Set to `True`, indicating that this migration is intended to be executed at startup."
+              },
+              {
+                "name": "dependencies",
+                "type_name": "List[Tuple[str,str]]",
+                "description": "Used to specify other migrations that this migration depends on."
+              },
+              {
+                "name": "operations",
+                "type_name": "list[migrationOperation]",
+                "description": "Defined as a list of migration operations, including creating models, fields, and relationships."
+              }
+            ],
+            "name": "Migration",
+            "location": {
+              "start": 9,
+              "insert": 11,
+              "offset": " ",
+              "indent": 4,
+              "comment": null
+            },
+            "item_type": "class",
+            "length": 49,
+            "docLength": null
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "0002_purchase_quantity.py",
+    "path": "test_app/stores/migrations/0002_purchase_quantity.py",
+    "content": {
+      "structured": {
+        "description": "A migration class in Django for adding a new field to a model called \"purchase\". The field is an integer named \"quantity\" with a default value of 0.",
+        "items": [
+          {
+            "id": "01082045-c3db-bc8a-0549-7cf7573fa71d",
+            "ancestors": [],
+            "description": "Adds an `quantity` field to the `purchase` model with a default value of 0.",
+            "attributes": [
+              {
+                "name": "dependencies",
+                "type_name": "List[str]",
+                "description": "Used to specify the migration dependencies, which are other migrations that must be applied before this migration can be applied."
+              },
+              {
+                "name": "operations",
+                "type_name": "List[migrationsAddField]",
+                "description": "Defined as a list of AddField operations, which specify the fields to be added or modified in a database migration."
+              }
+            ],
+            "name": "Migration",
+            "location": {
+              "start": 8,
+              "insert": 10,
+              "offset": " ",
+              "indent": 4,
+              "comment": null
+            },
+            "item_type": "class",
+            "length": 13,
+            "docLength": null
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "0003_auto_20170507_1836.py",
+    "path": "test_app/stores/migrations/0003_auto_20170507_1836.py",
+    "content": {
+      "structured": {
+        "description": "A migration in Django for altering the `purchase` model by adding a foreign key field that references the `Product` model. The migration also specifies the field name and the on_delete action as \"CASCADE\".",
+        "items": [
+          {
+            "id": "f465228d-ced6-3780-5d4e-3e75fb4e39d0",
+            "ancestors": [],
+            "description": "Modifies the `purchase` model by adding a foreign key field to reference the `Product` model, allowing for cascading deletion of purchases when a product is deleted.",
+            "attributes": [
+              {
+                "name": "dependencies",
+                "type_name": "List[tuple]",
+                "description": "Used to specify the dependencies required for the migration to run successfully."
+              },
+              {
+                "name": "operations",
+                "type_name": "list[migrationsAlterField]",
+                "description": "Defined as a list of migration operations, where each operation is an instance of the `AlterField` class."
+              }
+            ],
+            "name": "Migration",
+            "location": {
+              "start": 9,
+              "insert": 11,
+              "offset": " ",
+              "indent": 4,
+              "comment": null
+            },
+            "item_type": "class",
+            "length": 13,
+            "docLength": null
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "0004_auto_20170507_1837.py",
+    "path": "test_app/stores/migrations/0004_auto_20170507_1837.py",
+    "content": {
+      "structured": {
+        "description": "A migration for Django, which modifies the `purchase` model in the `stores` app. The migration adds a foreign key field to the `purchase` model, referencing the `Product` model. This change enables cascading deletion of related `Product` instances when a `Purchase` instance is deleted.",
+        "items": [
+          {
+            "id": "cabb3642-0c9e-a08b-d245-160df03b0306",
+            "ancestors": [],
+            "description": "Modifies the `purchase` model by changing the `product` field into a foreign key referencing the `Product` model, allowing for cascading deletion of related products when a purchase is deleted.",
+            "attributes": [
+              {
+                "name": "dependencies",
+                "type_name": "List[Tuple[str,str]]",
+                "description": "Used to specify the migrations that must be applied before this migration can be executed."
+              },
+              {
+                "name": "operations",
+                "type_name": "List[migrationsAlterField]",
+                "description": "Used to define database operations for a single migration."
+              }
+            ],
+            "name": "Migration",
+            "location": {
+              "start": 9,
+              "insert": 11,
+              "offset": " ",
+              "indent": 4,
+              "comment": null
+            },
+            "item_type": "class",
+            "length": 13,
+            "docLength": null
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "__init__.py",
+    "path": "test_app/stores/__init__.py",
+    "content": {
+      "structured": {
+        "description": "A `Person` class with attributes for name, age, and email, and a constructor that initializes these attributes. It also defines a `listPeople()` method that creates a list of `Person` objects and returns it. Additionally, it defines a `printPerson()` method that takes a `Person` object as an argument and prints its name, age, and email to the console.",
+        "items": []
+      }
+    }
+  },
+  {
+    "name": "admin.py",
+    "path": "test_app/stores/admin.py",
+    "content": {
+      "structured": {
+        "description": "An admin registration for three models: Store, Product, and Purchase within the Django framework. Specifically, it registers these models with the Django Admin site using the `admin.site.register()` function.",
+        "items": []
+      }
+    }
+  },
+  {
+    "name": "apps.py",
+    "path": "test_app/stores/apps.py",
+    "content": {
+      "structured": {
+        "description": "An AppConfig class named StoresConfig, which is a subclass of Django's AppConfig. The StoresConfig class sets the name attribute to 'stores'.",
+        "items": []
+      }
+    }
+  },
+  {
+    "name": "middleware.py",
+    "path": "test_app/stores/middleware.py",
+    "content": {
+      "structured": {
+        "description": "A custom manager class `TenantManager` for a Django queryset `TenantQuerySet`, which filters tenant-related data based on the current active tenant. The manager injects tenant filters into the queryset for all non-join queries, and additionally for subqueries through an API `_as_sql`. The code also defines an abstract model `TenantModel` with a custom `objects` attribute that references the `TenantManager`, and provides additional logic for saving models. Finally, it includes middleware `ThreadLocals` that saves various objects from the request object in thread local storage, including the tenant instance.",
+        "items": [
+          {
+            "id": "8ed5a8ee-93ae-3ea9-f34a-e426684b7aec",
+            "ancestors": [],
+            "description": "Adds tenant-specific filters to a query set using aliases and joins. It also provides extra parameters for filtering, sorting, and aggregating results based on tenant information.",
+            "attributes": [],
+            "name": "TenantQuerySet",
+            "location": {
+              "start": 16,
+              "insert": 19,
+              "offset": " ",
+              "indent": 4,
+              "comment": null
+            },
+            "item_type": "class",
+            "length": 49,
+            "docLength": null
+          },
+          {
+            "id": "03ed5327-861d-b193-e347-a6aedc6a64fd",
+            "ancestors": [
+              "8ed5a8ee-93ae-3ea9-f34a-e426684b7aec"
+            ],
+            "description": "Filters model instances based on tenant IDs by appending join conditions to the query set's extra parameters.",
+            "params": [],
+            "returns": null,
+            "usage": {
+              "language": "python",
+              "code": "# Import TenantQuerySet from a model file, e.g., models.py\nfrom myapp.models import TenantQuerySet\n\n# Create a new queryset object using the TenantQuerySet class\nqueryset = TenantQuerySet.objects.all()\n\n# Use the add_tenant_filters_with_joins method on the queryset object to filter results based on the current tenant\nfiltered_results = queryset.add_tenant_filters_with_joins()\n",
+              "description": "\nIn this example, a new queryset object is created using the TenantQuerySet class and then the add_tenant_filters_with_joins method is called to filter the results based on the current tenant. The filtered results are stored in the variable \"filtered_results\"."
+            },
+            "name": "add_tenant_filters_with_joins",
+            "location": {
+              "start": 19,
+              "insert": 20,
+              "offset": " ",
+              "indent": 8,
+              "comment": null
+            },
+            "item_type": "method",
+            "length": 12,
+            "docLength": null
+          },
+          {
+            "id": "ac7b2448-079a-0098-8046-3b6d1fc3adc5",
+            "ancestors": [
+              "8ed5a8ee-93ae-3ea9-f34a-e426684b7aec"
+            ],
+            "description": "Filters queries based on the current tenant ID, adding related table field filters to the queryset without using joins.",
+            "params": [],
+            "returns": null,
+            "usage": {
+              "language": "python",
+              "code": "from django.db import models\nfrom tenant.models import TenantQuerySet\n\nclass MyModel(models.Model):\n    tenant_id = models.IntegerField()\n\n# Create a queryset for the MyModel model\nmy_queryset = TenantQuerySet(MyModel)\n\n# Add filters for the current tenant to the queryset\nmy_queryset.add_tenant_filters_without_joins()\n\n# Execute the query and retrieve the results\nresults = my_queryset.all()\n",
+              "description": "\nIn this example, the end-user creates a queryset for the MyModel model using the TenantQuerySet class. The add_tenant_filters_without_joins method is then called on the queryset to add filters for the current tenant to the query. Finally, the queryset is executed and the results are retrieved."
+            },
+            "name": "add_tenant_filters_without_joins",
+            "location": {
+              "start": 36,
+              "insert": 37,
+              "offset": " ",
+              "indent": 8,
+              "comment": null
+            },
+            "item_type": "method",
+            "length": 7,
+            "docLength": null
+          },
+          {
+            "id": "4e44d702-1e83-51af-c644-9d858657b329",
+            "ancestors": [
+              "8ed5a8ee-93ae-3ea9-f34a-e426684b7aec"
+            ],
+            "description": "Adds tenant filters with joins before iterating over the superclass's implementation, allowing for more efficient and targeted querying of tenant data.",
+            "params": [],
+            "returns": {
+              "type_name": "object",
+              "description": "An instance of `TenantQuerySet`."
+            },
+            "usage": {
+              "language": "python",
+              "code": "from django.db import models\nfrom tenant_queryset import TenantQuerySet\n\nclass MyModel(models.Model):\n    # ... other model fields and methods here ...\n    \ntenant_queryset = TenantQuerySet(MyModel)\nfor obj in tenant_queryset:\n    print(obj)\n",
+              "description": ""
+            },
+            "name": "__iter__",
+            "location": {
+              "start": 46,
+              "insert": 47,
+              "offset": " ",
+              "indent": 8,
+              "comment": null
+            },
+            "item_type": "method",
+            "length": 3,
+            "docLength": null
+          },
+          {
+            "id": "533cc5d7-88f3-c084-b643-1845c6b23fcd",
+            "ancestors": [
+              "8ed5a8ee-93ae-3ea9-f34a-e426684b7aec"
+            ],
+            "description": "Adds tenant filters with joins and then calls the superclass's `aggregate` method to perform further aggregation.",
+            "params": [
+              {
+                "name": "*args",
+                "type_name": "list",
+                "description": "List of positional arguments"
+              },
+              {
+                "name": "**kwargs",
+                "type_name": "dict",
+                "description": "Dictionary of keyword arguments"
+              }
+            ],
+            "returns": {
+              "type_name": "object",
+              "description": "A result of applying aggregation to a queryset of tenants using joins and other operations."
+            },
+            "usage": {
+              "language": "python",
+              "code": "from my_app.models import TenantQuerySet\n\n# Retrieve a QuerySet of all tenants that belong to the current user\ncurrent_tenant = get_current_tenant()\nqueryset = TenantQuerySet(Tenant).filter(user=current_tenant)\n\n# Aggregate the number of active tenants for each category\ncategories = queryset.aggregate(num_active_tenants=Count('category', filter=Q(status='active')))\n",
+              "description": ""
+            },
+            "name": "aggregate",
+            "location": {
+              "start": 50,
+              "insert": 51,
+              "offset": " ",
+              "indent": 8,
+              "comment": null
+            },
+            "item_type": "method",
+            "length": 3,
+            "docLength": null
+          },
+          {
+            "id": "5337f4c0-fac2-ba9d-1d4d-36b93861247a",
+            "ancestors": [
+              "8ed5a8ee-93ae-3ea9-f34a-e426684b7aec"
+            ],
+            "description": "Adds tenant filters with joins and then calls the superclass's `count` method to retrieve the count of tenants.",
+            "params": [],
+            "returns": {
+              "type_name": "int",
+              "description": "The number of tenants that match the filters applied by the `add_tenant_filters_with_joins` method."
+            },
+            "usage": {
+              "language": "python",
+              "code": "from tenants.models import Tenant\n\n# Create a TenantQuerySet object\ntenants = Tenant.objects.all()\n\n# Call the count method to get the number of objects in the queryset\ncount = tenants.count()\n\nprint(f\"Number of tenants: {count}\")\n",
+              "description": ""
+            },
+            "name": "count",
+            "location": {
+              "start": 54,
+              "insert": 55,
+              "offset": " ",
+              "indent": 8,
+              "comment": null
+            },
+            "item_type": "method",
+            "length": 3,
+            "docLength": null
+          },
+          {
+            "id": "bfad57f4-ced4-f981-c942-81acc75cb7c9",
+            "ancestors": [
+              "8ed5a8ee-93ae-3ea9-f34a-e426684b7aec"
+            ],
+            "description": "Adds tenant filters with joins and then queries the data using the superclass's implementation, returning the result.",
+            "params": [
+              {
+                "name": "*args",
+                "type_name": "list",
+                "description": "List of positional arguments"
+              },
+              {
+                "name": "**kwargs",
+                "type_name": "dict",
+                "description": "Dictionary of keyword arguments"
+              }
+            ],
+            "returns": {
+              "type_name": "Tenant|None",
+              "description": "A subclass of QuerySet and represents a single tenant or None if no matching tenants are found."
+            },
+            "usage": {
+              "language": "python",
+              "code": "# Get a specific tenant\ntenant = TenantQuerySet.get(Tenant, pk=1)\n\n# Get all tenants with a specified name\ntenants = TenantQuerySet.get(Tenant, name='My Company')\n",
+              "description": ""
+            },
+            "name": "get",
+            "location": {
+              "start": 58,
+              "insert": 60,
+              "offset": " ",
+              "indent": 8,
+              "comment": null
+            },
+            "item_type": "method",
+            "length": 3,
+            "docLength": null
+          },
+          {
+            "id": "4a4ab546-ba44-ce84-5248-3596280dd5b8",
+            "ancestors": [
+              "8ed5a8ee-93ae-3ea9-f34a-e426684b7aec"
+            ],
+            "description": "Adds tenant filters with joins and then calls the superclass's `_as_sql` method to generate the SQL query for the filtered results.",
+            "name": "_as_sql",
+            "location": {
+              "start": 78,
+              "insert": 79,
+              "offset": " ",
+              "indent": 8,
+              "comment": null
+            },
+            "item_type": "method",
+            "length": 3,
+            "docLength": null
+          },
+          {
+            "id": "9809516c-8b49-398f-4f49-1c530cd1196e",
+            "ancestors": [],
+            "description": "Filters and queries tenants based on their ID, using the current tenant's ID to tailor the queryset.",
+            "attributes": [],
+            "name": "TenantManager",
+            "location": {
+              "start": 83,
+              "insert": 86,
+              "offset": " ",
+              "indent": 4,
+              "comment": null
+            },
+            "item_type": "class",
+            "length": 7,
+            "docLength": null
+          },
+          {
+            "id": "636875b4-4b74-539b-4b4f-9be688c737c5",
+            "ancestors": [
+              "9809516c-8b49-398f-4f49-1c530cd1196e"
+            ],
+            "description": "Filters the queryset of objects based on the current tenant ID, using the `get_current_tenant()` function to retrieve the current tenant and passing the filtered queryset to the superclass's `get_queryset()` method.",
+            "params": [],
+            "returns": {
+              "type_name": "Dict[str,int]",
+              "description": "A filterd queryset of objects of type TenantManager's model based on the current tenant ID."
+            },
+            "usage": {
+              "language": "python",
+              "code": "from app.models import Tenant\n\ntenants = Tenant.objects.all()\nfor tenant in tenants:\n    print(tenant)\n",
+              "description": ""
+            },
+            "name": "get_queryset",
+            "location": {
+              "start": 86,
+              "insert": 87,
+              "offset": " ",
+              "indent": 8,
+              "comment": null
+            },
+            "item_type": "method",
+            "length": 6,
+            "docLength": null
+          },
+          {
+            "id": "4e267730-9fc3-22a5-b244-e2408150afb1",
+            "ancestors": [],
+            "description": "Provides an abstraction layer for updating tenant-related data in a database, allowing child classes to specify which fields to update and how to filter related records based on the current tenant.",
+            "attributes": [
+              {
+                "name": "objects",
+                "type_name": "TenantManager|None",
+                "description": "Used to manage instances of the model."
+              },
+              {
+                "name": "tenant_id",
+                "type_name": "str|int",
+                "description": "Used to identify the current tenant for which the model instance is responsible, as set by the `objects` attribute."
+              }
+            ],
+            "name": "TenantModel",
+            "location": {
+              "start": 94,
+              "insert": 97,
+              "offset": " ",
+              "indent": 4,
+              "comment": null
+            },
+            "item_type": "class",
+            "length": 14,
+            "docLength": null
+          },
+          {
+            "id": "3967d895-4072-5d89-9448-19e532843af3",
+            "ancestors": [
+              "4e267730-9fc3-22a5-b244-e2408150afb1"
+            ],
+            "description": "Updates an instance of the model based on input parameters, filtering the base query set by the current tenant's ID and applying superclass updates.",
+            "name": "_do_update",
+            "location": {
+              "start": 102,
+              "insert": 103,
+              "offset": " ",
+              "indent": 8,
+              "comment": null
+            },
+            "item_type": "method",
+            "length": 6,
+            "docLength": null
+          },
+          {
+            "id": "db8c6058-de80-fab1-244d-0f8a0774aa40",
+            "ancestors": [],
+            "description": "Searches through a Django app's models for the one with the matching db_table name, returning it if found. If not found, it raises a `ValueError`.",
+            "params": [
+              {
+                "name": "db_table",
+                "type_name": "str|int",
+                "description": "Used to identify the name of the database table associated with a Django model."
+              }
+            ],
+            "returns": {
+              "type_name": "Model",
+              "description": "A Python object representing a Django model instance associated with the specified database table name."
+            },
+            "usage": {
+              "language": "python",
+              "code": "model = get_model_by_db_table('myapp_author')\nprint(model)\n# myapp.models.Author\n",
+              "description": ""
+            },
+            "name": "get_model_by_db_table",
+            "location": {
+              "start": 120,
+              "insert": 121,
+              "offset": " ",
+              "indent": 4,
+              "comment": null
+            },
+            "item_type": "function",
+            "length": 7,
+            "docLength": null
+          },
+          {
+            "id": "8e460e59-b955-15ab-3644-968bb7340dd8",
+            "ancestors": [],
+            "description": "Retrieves the current tenant ID from the local thread storage and returns it. If no tenant is found, it sets the default tenant ID and retrieves it again.",
+            "params": [],
+            "returns": {
+              "type_name": "object",
+              "description": "Ether `tenant` or `None`."
+            },
+            "usage": {
+              "language": "python",
+              "code": "from tenancy_management import get_current_tenant\n\n# Set the current tenant to \"Acme Inc.\"\nget_current_tenant().set(\"Acme Inc.\")\n\n# Retrieve the current tenant\nprint(get_current_tenant().get()) # prints \"Acme Inc.\"\n",
+              "description": ""
+            },
+            "name": "get_current_tenant",
+            "location": {
+              "start": 129,
+              "insert": 130,
+              "offset": " ",
+              "indent": 4,
+              "comment": {
+                "start": 129,
+                "end": 134
+              }
+            },
+            "item_type": "function",
+            "length": 7,
+            "docLength": 5
+          },
+          {
+            "id": "814e8f1b-86c6-b0a0-b043-f0bca841e331",
+            "ancestors": [],
+            "description": "Maintains thread-local variables for user and tenant information. It sets these variables based on the `request` parameter, and raises an error if a User is created without a Profile.",
+            "attributes": [],
+            "name": "ThreadLocals",
+            "location": {
+              "start": 157,
+              "insert": 158,
+              "offset": " ",
+              "indent": 4,
+              "comment": {
+                "start": 157,
+                "end": 159
+              }
+            },
+            "item_type": "class",
+            "length": 16,
+            "docLength": 2
+          },
+          {
+            "id": "6d4dccd9-3116-07b2-ce41-37da2daa1ddd",
+            "ancestors": [
+              "814e8f1b-86c6-b0a0-b043-f0bca841e331"
+            ],
+            "description": "Sets the `user` thread local variable to the user attribute of the incoming request, then checks if the user has a profile and sets the `tenant` thread local variable accordingly. If an exception occurs during this process, a ValueError is raised with a security-related message.",
+            "params": [
+              {
+                "name": "request",
+                "type_name": "Any|Request",
+                "description": "Provided as an instance of a Python class representing a web request."
+              }
+            ],
+            "returns": null,
+            "usage": {
+              "language": "python",
+              "code": "# create a new ThreadLocals object\nthread = ThreadLocals()\n\n# create a test request object\nrequest = Request({})\n\n# call the process_request method with the request as an argument\nthread.process_request(request)\n",
+              "description": ""
+            },
+            "name": "process_request",
+            "location": {
+              "start": 160,
+              "insert": 161,
+              "offset": " ",
+              "indent": 8,
+              "comment": null
+            },
+            "item_type": "method",
+            "length": 15,
+            "docLength": null
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "models.py",
+    "path": "test_app/stores/models.py",
+    "content": {
+      "structured": {
+        "description": "Several models in a Django project, including a Store model, a Product model, and a Purchase model. The models use Django's built-in `DateTimeField` and `ForeignKey` fields, as well as the `moneyfield` package for handling money values. Additionally, the code imports the `django_multitenant` package for multitenancy support. The code also defines a `get_tenant()` method on the Product model to provide access to the associated Store object.",
+        "items": [
+          {
+            "id": "52a5bfa1-196e-74a4-fd4b-ae893f6f30ca",
+            "ancestors": [],
+            "description": "Defines a model with a `name` field and a `tenant_id` field, which is set to the value `'id'`.",
+            "attributes": [
+              {
+                "name": "name",
+                "type_name": "CharFieldmax_length255",
+                "description": "A non-nullable field that stores a string value."
+              },
+              {
+                "name": "tenant_id",
+                "type_name": "str|int",
+                "description": "Assigned the value `'id'`."
+              }
+            ],
+            "name": "Store",
+            "location": {
+              "start": 17,
+              "insert": 18,
+              "offset": " ",
+              "indent": 4,
+              "comment": null
+            },
+            "item_type": "class",
+            "length": 3,
+            "docLength": null
+          },
+          {
+            "id": "f865f10c-d380-7eae-d84c-1bf0bbcec013",
+            "ancestors": [],
+            "description": "Models a product within a store, linking it to its store of origin via a foreign key. It also provides a convenient way to access the associated store through the `get_tenant()` method.",
+            "attributes": [
+              {
+                "name": "store",
+                "type_name": "ForeignKeyStore",
+                "description": "A reference to a Store object, which establishes a relationship between Products and Stores."
+              },
+              {
+                "name": "tenant_id",
+                "type_name": "str|int",
+                "description": "A ForeignKey referencing the `Store` model, establishing a unique identifier for each product within a particular store."
+              },
+              {
+                "name": "name",
+                "type_name": "CharFieldmax_length255",
+                "description": "Used to store a short name for the product."
+              },
+              {
+                "name": "description",
+                "type_name": "TextField",
+                "description": "Maximum length of 255 characters, allowing for a brief text description of the product."
+              }
+            ],
+            "name": "Product",
+            "location": {
+              "start": 21,
+              "insert": 22,
+              "offset": " ",
+              "indent": 4,
+              "comment": null
+            },
+            "item_type": "class",
+            "length": 11,
+            "docLength": null
+          },
+          {
+            "id": "e06f5e05-0abe-6d89-e945-4a480a13e666",
+            "ancestors": [],
+            "description": "Models a purchase made by a tenant, linking the purchase to a store and a product, with an optional quantity.",
+            "attributes": [
+              {
+                "name": "store",
+                "type_name": "ForeignKeyStore",
+                "description": "A reference to the store associated with the purchase."
+              },
+              {
+                "name": "tenant_id",
+                "type_name": "str|int",
+                "description": "A ForeignKey to the `Store` model, which establishes a unique identifier for each purchase made by a specific tenant."
+              },
+              {
+                "name": "product",
+                "type_name": "ForeignKeyProduct",
+                "description": "Linked to a product object in the Product model using a foreign key relationship."
+              },
+              {
+                "name": "quantity",
+                "type_name": "IntegerField",
+                "description": "Defaulted to zero. It represents the quantity of a product purchased by a tenant from a store."
+              }
+            ],
+            "name": "Purchase",
+            "location": {
+              "start": 33,
+              "insert": 34,
+              "offset": " ",
+              "indent": 4,
+              "comment": null
+            },
+            "item_type": "class",
+            "length": 10,
+            "docLength": null
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "tests.py",
+    "path": "test_app/stores/tests.py",
+    "content": {
+      "structured": {
+        "description": "Various tests for a Django application using the `django.test` module. It includes tests for setting the current tenant in middleware, querying Product objects, filtering Purchase objects based on store name and product description, updating Purchase objects, and calculating the number of Products and Purchases for a specific store. The code also demonstrates how to save a new Product object and calculate the average store ID for Products associated with a particular store.",
+        "items": []
+      }
+    }
+  },
+  {
+    "name": "urls.py",
+    "path": "test_app/stores/urls.py",
+    "content": {
+      "structured": {
+        "description": "A URL pattern in Django's `conf.urls` module, which maps a URL prefix (`^`) to a view function (`index`). The view function is defined in the same module and is named `index`.",
+        "items": []
+      }
+    }
+  },
+  {
+    "name": "views.py",
+    "path": "test_app/stores/views.py",
+    "content": {
+      "structured": {
+        "description": "A function `index` that uses Django's `shortcuts` and `HttpResponse` modules to return a simple \"Hi, world\" message in response to HTTP requests. Specifically, `render` is used to create an HttpResponse object, which is then returned to the client.",
+        "items": []
+      }
+    }
+  },
+  {
+    "name": "apis_test.py",
+    "path": "test_app/apis_test.py",
+    "content": {
+      "structured": {
+        "description": "Various models and their associated database tables in Django, as well as importing and utilizing packages for multitenancy and filtering data based on tenants. The code includes queries to retrieve product information, perform updates and saves, and run aggregations and subqueries across multiple tables.",
+        "items": []
+      }
+    }
+  },
+  {
+    "name": "demo.py",
+    "path": "test_app/demo.py",
+    "content": {
+      "structured": {
+        "description": "A schema, sets a current tenant, and performs various queries and operations on a database. It utilizes packages such as `stores`, `middleware`, `django_multitenant`, and `Product`. The code includes commands for retrieving products, purchases, and the total number of purchased items, as well as creating a new product and resetting the tenant. Additionally, it provides an example of using subqueries to retrieve purchases of a specific product.",
+        "items": []
+      }
+    }
+  },
+  {
+    "name": "manage.py",
+    "path": "test_app/manage.py",
+    "content": {
+      "structured": {
+        "description": "An execution flow for managing Django projects. It sets default environment variables for Django settings and then attempts to import Django. If successful, it executes the given command line using `execute_from_command_line` function from Django core.",
+        "items": []
+      }
+    }
+  },
+  {
+    "name": "setup.py",
+    "path": "setup.py",
+    "content": {
+      "structured": {
+        "description": "A package named \"django-multitenant\" with various functionalities for implementing multi-tenancy in Django databases. It uses setuptools for packaging and dependency management, and includes various classifiers, keywords, and license information. The code also defines entry points for installing the package via the command line.",
+        "items": []
+      }
+    }
+  },
+  {
+    "name": "test.py",
+    "path": "test.py",
+    "content": {
+      "structured": {
+        "description": "A module that imports and uses the `django-multitenant` package to manage multiple tenants in a Django application.",
+        "items": []
+      }
+    }
+  }
+]

@@ -8,6 +8,18 @@ import django.db.models.deletion
 
 class Migration(migrations.Migration):
 
+    """
+    Modifies the `purchase` model by changing the `product` field into a foreign
+    key referencing the `Product` model, allowing for cascading deletion of related
+    products when a purchase is deleted.
+
+    Attributes:
+        dependencies (List[Tuple[str,str]]): Used to specify the migrations that
+            must be applied before this migration can be executed.
+        operations (List[migrationsAlterField]): Used to define database operations
+            for a single migration.
+
+    """
     dependencies = [
         ('stores', '0003_auto_20170507_1836'),
     ]
